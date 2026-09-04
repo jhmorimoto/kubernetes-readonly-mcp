@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "kubernetes-readonly": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "main.py"]
+    }
+  }
+}

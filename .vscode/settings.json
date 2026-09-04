@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^pwd; command -v uv; uv --version; python3 --version; find \\. -maxdepth 2 -type f -print$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

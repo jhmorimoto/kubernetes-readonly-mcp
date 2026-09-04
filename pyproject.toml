@@ -1,0 +1,14 @@
+[project]
+name = "k8s-readonly-mcp"
+version = "0.1.0"
+description = "Read-only Kubernetes diagnostics over MCP"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "kubernetes>=36.0.3",
+    "mcp>=2.1.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
