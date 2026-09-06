@@ -5,10 +5,38 @@ MCP server for diagnosing Kubernetes clusters without creating or changing clust
 ## Prerequisites
 
 - `uv`
-- One or more readable kubeconfig files in `~/.kube/configs`
+- One or more readable kubeconfig files in `~/.kube/configs` (or a custom path via `KUBECONFIG_DIRECTORY` / `KUBECONFIG_DIR` environment variables)
 - Kubernetes RBAC limited to read-only permissions, for defense in depth
 
 The MCP identifier for a cluster is the Kubernetes context name declared inside a kubeconfig, not the file name. Use `list_clusters` first to discover the available contexts. When the same context occurs in more than one file, the server uses the first file in alphabetical order and lists only the ignored file names in `duplicate_kubeconfig_files`.
+
+## Configuration
+
+By default, the server looks for kubeconfig files in `~/.kube/configs` (using the current user's `$HOME` or `Path.home()`). You can override this path by setting environment variables:
+
+- `KUBECONFIG_DIRECTORY` or `KUBECONFIG_DIR`: Full or relative path to the directory containing kubeconfig files (e.g. `/home/user/.kube/configs` or `~/.kube/configs`).
+
+### Remote Environments (VS Code Remote SSH / Tunnels)
+
+When connecting to VS Code via Remote SSH or Tunnels:
+- Open this repository as a workspace inside the **remote window**.
+- VS Code will execute `uv run main.py` directly on the remote server using the workspace [.vscode/mcp.json](.vscode/mcp.json), resolving `$HOME` and `~/.kube/configs` from the remote host.
+- If you need to explicitly point to a specific directory in [.vscode/mcp.json](.vscode/mcp.json), you can define the `env` block:
+
+```json
+{
+  "servers": {
+    "kubernetes-readonly": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "main.py"],
+      "env": {
+        "KUBECONFIG_DIRECTORY": "${env:HOME}/.kube/configs"
+      }
+    }
+  }
+}
+```
 
 ## Run
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -7,7 +9,27 @@ from kubernetes import client, config
 from kubernetes.client.exceptions import ApiException
 from kubernetes.dynamic import DynamicClient
 
-KUBECONFIG_DIRECTORY = Path.home() / ".kube" / "configs"
+logger = logging.getLogger(__name__)
+
+
+def get_kubeconfig_directory() -> Path:
+    """Return the kubeconfig directory, respecting environment overrides."""
+    env_dir = os.environ.get("KUBECONFIG_DIRECTORY") or os.environ.get("KUBECONFIG_DIR")
+    if env_dir:
+        directory = Path(env_dir).expanduser()
+        logger.info("Resolved kubeconfig directory from environment variable: %s", directory)
+        return directory
+    home = os.environ.get("HOME")
+    if home:
+        directory = Path(home) / ".kube" / "configs"
+        logger.info("Resolved kubeconfig directory from $HOME: %s", directory)
+        return directory
+    directory = Path.home() / ".kube" / "configs"
+    logger.info("Resolved kubeconfig directory from Path.home(): %s", directory)
+    return directory
+
+
+KUBECONFIG_DIRECTORY = get_kubeconfig_directory()
 
 
 class ClusterError(RuntimeError):
@@ -21,15 +43,17 @@ def _config_files(directory: Path) -> list[Path]:
 
 
 def discover_clusters(
-    directory: Path = KUBECONFIG_DIRECTORY,
+    directory: Path | None = None,
 ) -> tuple[list[dict[str, str]], list[str]]:
     """Discover contexts and kubeconfig files skipped due to duplicate contexts."""
+    target_directory = directory if directory is not None else get_kubeconfig_directory()
+    logger.info("Discovering Kubernetes clusters in kubeconfig directory: %s", target_directory)
     clusters: list[dict[str, str]] = []
     seen_contexts: dict[str, Path] = {}
     invalid_files: list[str] = []
     duplicate_files: list[str] = []
 
-    for config_file in _config_files(directory):
+    for config_file in _config_files(target_directory):
         try:
             contexts, active_context = config.list_kube_config_contexts(
                 config_file=str(config_file)
@@ -59,20 +83,21 @@ def discover_clusters(
 
     if not clusters:
         detail = f" Invalid files: {', '.join(invalid_files)}." if invalid_files else ""
-        raise ClusterError(f"No Kubernetes contexts found in {directory}.{detail}")
+        raise ClusterError(f"No Kubernetes contexts found in {target_directory}.{detail}")
     return clusters, duplicate_files
 
 
-def available_clusters(directory: Path = KUBECONFIG_DIRECTORY) -> list[dict[str, str]]:
+def available_clusters(directory: Path | None = None) -> list[dict[str, str]]:
     """Discover unique Kubernetes contexts from every regular config file."""
     clusters, _ = discover_clusters(directory)
     return clusters
 
 
-def _config_for_context(context_name: str) -> Path:
-    for cluster in available_clusters():
+def _config_for_context(context_name: str, directory: Path | None = None) -> Path:
+    target_directory = directory if directory is not None else get_kubeconfig_directory()
+    for cluster in available_clusters(target_directory):
         if cluster["context"] == context_name:
-            return KUBECONFIG_DIRECTORY / cluster["kubeconfig"]
+            return target_directory / cluster["kubeconfig"]
     raise ClusterError(f"Unknown cluster context: '{context_name}'. Use list_clusters first.")
 
 
