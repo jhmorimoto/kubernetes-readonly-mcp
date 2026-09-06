@@ -4,9 +4,9 @@
       "type": "stdio",
       "command": "uv",
       "args": ["run", "main.py"],
-      "env": {
-        "KUBECONFIG_DIRECTORY": "${env:HOME}/.kube/configs"
-      }
+      // "env": {
+      //   "KUBECONFIG_DIRECTORY": "${env:HOME}/.kube/configs"
+      // }
     }
   }
 }
